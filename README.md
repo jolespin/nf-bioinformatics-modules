@@ -1,2 +1,2 @@
-# nf-genomics-modules
-Genomics modules for NextFlow
+# nf-bioinformatics-modules
+Bioinformatics modules for NextFlow
