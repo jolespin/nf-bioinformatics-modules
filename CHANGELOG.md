@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Module filtering with `--filter` option for list command
 - Initial module support for bioinformatics tools:
   - `barrnap` - Bacterial ribosomal RNA prediction
-  - `flye` - De novo assembler for single-molecule sequencing
+  - `flye` - De novo assembler for long-read sequencing
   - `pyrodigal` - Fast gene prediction for prokaryotes
   - `spades` - Genome assembler for bacterial genomes
   - `trnascanse` - tRNA gene detection
