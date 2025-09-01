@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
-def module_version = "2025.9.1"
+def module_version = "2025.9.1.post1"
 
 process SPADES {
     tag "$meta.id"
@@ -16,6 +16,7 @@ process SPADES {
     tuple val(meta), path(illumina), path(pacbio), path(nanopore)
     path hmm
     path yml
+    path program
 
     output:
     tuple val(meta), path('*.scaffolds.fa.gz')    , emit: scaffolds
@@ -39,8 +40,9 @@ process SPADES {
     def nanopore_reads = nanopore ? "--nanopore $nanopore" : ""
     def custom_hmms = hmm ? "--custom-hmms $hmm" : ""
     def reads = yml ? "--dataset $yml" : "$illumina_reads $pacbio_reads $nanopore_reads"
+    def spades_program = program ?: 'spades.py' 
     """
-    spades.py \\
+    ${spades_program} \\
         $args \\
         --threads $task.cpus \\
         --memory $maxmem \\
