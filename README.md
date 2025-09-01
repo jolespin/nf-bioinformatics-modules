@@ -4,7 +4,7 @@ NextFlow bioinformatics modules management tool
 
 ## Overview
 
-nf-modules is a command-line tool for managing NextFlow bioinformatics modules from the [nf-modules repository](https://github.com/jolespin/nf-modules). It provides simple commands to list available modules and fetch them for use in your NextFlow workflows.  Many of these modules are modifications from [`nf-core`](https://github.com/nf-core/modules/)
+nf-modules is a command-line tool for managing NextFlow bioinformatics modules from the [nf-modules repository](https://github.com/jolespin/nf-modules). It provides simple commands to list available modules and fetch them for use in your NextFlow workflows.  Many of these modules are modifications from [`nf-core`](https://github.com/nf-core/modules/).  For official `nf-core` modules, please use `nf-core` cli. 
 
 ## Installation
 
@@ -14,6 +14,18 @@ pip install nf-modules
 ```
 
 ## Usage
+Recommended `NextFlow` project directory structure: 
+```
+├── nextflow.config
+├── main.nf
+├── modules/
+│   ├── external/ # nf-modules or other external modules
+│   ├── local/ # Your custom modules (e.g., assembly/main.nf)
+│   └── nf-core/ # Official nf-core modules
+├── bin/
+├── .gitignore
+└── README.md
+```
 
 ### List available modules
 
