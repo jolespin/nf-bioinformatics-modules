@@ -13,15 +13,16 @@ def fetch_modules(args):
     """Fetch one or more modules from the repository"""
     module_names = args.modules
     output_directory = args.output_directory
+    tag = args.tag
     
     # Create output directory
     os.makedirs(output_directory, exist_ok=True)
     
     # Download and extract
-    repository_url = "https://api.github.com/repos/jolespin/nf-bioinformatics-modules/tarball"
+    repository_url = f"https://api.github.com/repos/jolespin/nf-modules/tarball/{tag}"
     
     try:
-        print(f"Downloading {len(module_names)} module(s): {', '.join(module_names)}")
+        print(f"Downloading {len(module_names)} module(s) from tag '{tag}': {', '.join(module_names)}")
         
         with tempfile.NamedTemporaryFile(suffix='.tar.gz', delete=False) as temporary_file:
             with urllib.request.urlopen(repository_url) as response:

@@ -49,6 +49,11 @@ def main():
                 help='Output directory to download modules (default: modules/external)'
             )
             subparser.add_argument(
+                '-t', '--tag',
+                default='main',
+                help='Git tag or branch to fetch from (default: main)'
+            )
+            subparser.add_argument(
                 'modules',
                 nargs='+',
                 help='One or more module names to fetch'
@@ -76,7 +81,8 @@ def main():
     # Execute the appropriate command with parsed arguments
     if args.command in COMMANDS:
         cmd_info = COMMANDS[args.command]
-        module = __import__(f".{cmd_info['module']}", fromlist=[cmd_info['function']])
+        # Fix: Import from nf_modules package, not relative import
+        module = __import__(f"nf_modules.{cmd_info['module']}", fromlist=[cmd_info['function']])
         function = getattr(module, cmd_info['function'])
         function(args)  # Pass the parsed arguments
     else:
