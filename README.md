@@ -73,7 +73,7 @@ List all available modules in the repository.
     trnascanse
     ```
 
-    * yaml
+* yaml
     ```yaml
     name: nf-modules
     dependencies:
