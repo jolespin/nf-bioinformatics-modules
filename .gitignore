@@ -1,0 +1,25 @@
+# Nextflow pipeline working directory and cache
+.nextflow/
+**/work/
+
+
+# Temporary files and intermediate data
+tmp/
+*.tmp
+*.temp
+
+# Nextflow trace, timeline, and report files (optional: track if desired)
+trace.*
+timeline.*
+report.*
+
+# IDE/editor directories and files (optional, adjust per your preferences)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System files (optional, for macOS and Linux)
+.DS_Store
+Thumbs.db
+
