@@ -60,10 +60,10 @@ def main():
             )
         elif cmd == 'list':
             subparser.add_argument(
-                '--format',
-                choices=['simple', 'detailed'],
-                default='simple',
-                help='Output format (default: simple)'
+                '-f', '--format',
+                choices=['list-name', 'yaml'],
+                default='list-name',
+                help='Output format (default: list-name)'
             )
             subparser.add_argument(
                 '--filter',
