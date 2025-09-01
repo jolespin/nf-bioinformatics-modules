@@ -1,4 +1,7 @@
 #!/usr/bin/env nextflow
+nextflow.enable.dsl = 2
+
+def module_version = "2025.9.1"
 
 process PYRODIGAL {
     tag "$meta.id"
@@ -75,6 +78,7 @@ process PYRODIGAL {
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         pyrodigal: \$(echo \$(pyrodigal --version 2>&1 | sed 's/pyrodigal v//'))
+        module: ${module_version}
     END_VERSIONS
     """
 }

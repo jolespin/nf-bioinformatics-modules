@@ -1,4 +1,7 @@
 #!/usr/bin/env nextflow
+nextflow.enable.dsl = 2
+
+def module_version = "2025.9.1"
 
 process SPADES {
     tag "$meta.id"
@@ -109,6 +112,8 @@ process SPADES {
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         spades: \$(spades.py --version 2>&1 | sed -n 's/^.*SPAdes genome assembler v//p')
+        module: ${module_version}
+
     END_VERSIONS
     """
 }
