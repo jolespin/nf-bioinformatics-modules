@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - TBD
 - Added `CHANGELOG.md` for each module to track changes
 - Added `program` to `spades` module
+- Added `checkm2_predict` module
+- Added `pyhmmsearch` module
 
 ## [0.1.0] - 2025-09-01
 
