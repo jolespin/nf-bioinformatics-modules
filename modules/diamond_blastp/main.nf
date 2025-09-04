@@ -153,7 +153,7 @@ process DIAMOND_BLASTP_WITH_CONCATENATION {
     val blast_columns
     
     output:
-    tuple val(meta), val(meta2), path("*.{txt,tsv}"), emit: results
+    tuple val(meta), val(meta2), path("*.{txt.gz,tsv.gz}"), emit: results
     path "versions.yml", emit: versions
     
     script:
@@ -187,7 +187,9 @@ process DIAMOND_BLASTP_WITH_CONCATENATION {
         --out ${prefix}.${extension} \\
         --header simple
 
-    
+    # Gzip
+    gzip -n -f -v ${prefix}.${extension}
+
     # Clean up temporary file
     rm \$TEMP_FASTA
     
@@ -203,7 +205,7 @@ process DIAMOND_BLASTP_WITH_CONCATENATION {
     def extension = outfmt == 6 ? "tsv" : "txt"
     
     """
-    touch ${prefix}.${extension}
+    touch ${prefix}.${extension}.gz
     
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
