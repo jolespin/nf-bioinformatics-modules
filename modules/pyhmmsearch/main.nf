@@ -7,10 +7,10 @@ process PYHMMSEARCH {
     tag "$meta.id---$dbmeta.id"
     label 'process_medium'
 
-    conda "bioconda::pyhmmsearch=2025.1.23"
+    conda "bioconda::pyhmmsearch=2025.9.4.post1"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/pyhmmsearch:2025.1.23--pyh7e72e81_0' :
-        'biocontainers/pyhmmsearch:2025.1.23--pyh7e72e81_0' }"
+        'https://depot.galaxyproject.org/singularity/pyhmmsearch:2025.9.4.post1--pyh7e72e81_0' :
+        'biocontainers/pyhmmsearch:2025.9.4.post1--pyh7e72e81_0' }"
 
     input:
     tuple(val(meta), path(fasta))
