@@ -6,6 +6,7 @@ All notable changes to this module will be documented in this file.
 
 ### Added
 * Added `--header simple`
+* Removed `DIAMOND_BLASTP_WITH_CONCATENATION` and now `DIAMOND_BLASTP` supports both single files and multiple files
 
 ## v2025.09.03 - 2025-09-03
 
