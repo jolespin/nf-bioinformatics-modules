@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
-def module_version = "2025.9.3"
+def module_version = "2025.9.4"
 
 process DIAMOND_BLASTP {
     tag "${meta.id}"
@@ -45,7 +45,7 @@ process DIAMOND_BLASTP {
         out_ext = "xml"
     }
     else if (outfmt == 6) {
-        out_ext = "txt"
+        out_ext = "tsv"
     }
     else if (outfmt == 100) {
         out_ext = "daa"
@@ -60,9 +60,9 @@ process DIAMOND_BLASTP {
         out_ext = "paf"
     }
     else {
-        log.warn("Unknown output file format provided (${outfmt}): selecting DIAMOND default of tabular BLAST output (txt)")
+        log.warn("Unknown output file format provided (${outfmt}): selecting DIAMOND default of tabular BLAST output (tsv)")
         outfmt = 6
-        out_ext = 'txt'
+        out_ext = 'tsv'
     }
 
     if (args =~ /--compress\s+1/) {
@@ -78,7 +78,10 @@ process DIAMOND_BLASTP {
         --outfmt ${outfmt} ${columns} \\
         --max-target-seqs 1 \\
         ${args} \\
-        --out ${prefix}.${out_ext}
+        --out ${prefix}.${out_ext} \\
+        --header simple
+
+    gzip -n -f -v ${prefix}.${out_ext}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -99,7 +102,7 @@ process DIAMOND_BLASTP {
         out_ext = "xml"
     }
     else if (outfmt == 6) {
-        out_ext = "txt"
+        out_ext = "tsv"
     }
     else if (outfmt == 100) {
         out_ext = "daa"
@@ -114,9 +117,9 @@ process DIAMOND_BLASTP {
         out_ext = "paf"
     }
     else {
-        log.warn("Unknown output file format provided (${outfmt}): selecting DIAMOND default of tabular BLAST output (txt)")
+        log.warn("Unknown output file format provided (${outfmt}): selecting DIAMOND default of tabular BLAST output (tsv)")
         outfmt = 6
-        out_ext = 'txt'
+        out_ext = 'tsv'
     }
 
     if (args =~ /--compress\s+1/) {
@@ -157,7 +160,7 @@ process DIAMOND_BLASTP_WITH_CONCATENATION {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}_vs_${meta2.id}"
     def columns = blast_columns ? "${blast_columns}" : ''
-    def extension = outfmt == 6 ? "txt" : "tsv"
+    def extension = outfmt == 6 ? "tsv" : "txt"
     
     """
     # Create temporary concatenated file (BusyBox compatible)
@@ -181,7 +184,9 @@ process DIAMOND_BLASTP_WITH_CONCATENATION {
         --outfmt ${outfmt} ${columns} \\
         --max-target-seqs 1 \\
         ${args} \\
-        --out ${prefix}.${extension}
+        --out ${prefix}.${extension} \\
+        --header simple
+
     
     # Clean up temporary file
     rm \$TEMP_FASTA
@@ -195,7 +200,7 @@ process DIAMOND_BLASTP_WITH_CONCATENATION {
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}_vs_${meta2.id}"
-    def extension = outfmt == 6 ? "txt" : "tsv"
+    def extension = outfmt == 6 ? "tsv" : "txt"
     
     """
     touch ${prefix}.${extension}

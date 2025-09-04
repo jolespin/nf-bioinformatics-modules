@@ -2,6 +2,11 @@
 
 All notable changes to this module will be documented in this file.
 
+## v2025.09.04 - 2025-09-04
+
+### Added
+* Added `--header simple`
+
 ## v2025.09.03 - 2025-09-03
 
 ### Added
