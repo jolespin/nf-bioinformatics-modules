@@ -15,7 +15,9 @@ process PYHMMSEARCH {
     input:
     tuple(val(meta), path(fasta))
     tuple(val(dbmeta), path(db))
-    val(write_reformatted_output) //, val(write_target), val(write_domain)
+    val(write_reformatted_output)
+    val(write_target)
+    val(write_domain)
 
     output:
     tuple val(meta), val(dbmeta), path('*.tsv.gz')   , emit: output
