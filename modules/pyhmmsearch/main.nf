@@ -4,7 +4,7 @@ nextflow.enable.dsl = 2
 def module_version = "2025.9.4"
 
 process PYHMMSEARCH {
-    tag "$meta.id"
+    tag "$meta.id---$dbmeta.id"
     label 'process_medium'
 
     conda "bioconda::pyhmmsearch=2024.10.20"
@@ -15,7 +15,6 @@ process PYHMMSEARCH {
     input:
     tuple(val(meta), path(fasta))
     tuple(val(dbmeta), path(db))
-    
     val(write_reformatted_output) //, val(write_target), val(write_domain)
 
     output:
@@ -81,7 +80,7 @@ process PYHMMSEARCH {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}--${dbmeta.id}"
     """
     touch "${prefix}.tsv.gz"
     ${write_reformatted_output ? "touch ${prefix}.reformatted.tsv.gz" : ''}
