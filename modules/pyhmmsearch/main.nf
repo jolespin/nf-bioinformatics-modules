@@ -28,17 +28,17 @@ process PYHMMSEARCH {
     script:
     def args       = task.ext.args   ?: ''
     def prefix     = task.ext.prefix ?: "${meta.id}"
+    input = "cat ${fasta}"
     reformatted_argument = write_reformatted_output    ? "reformat_pyhmmsearch -i ${prefix}.tsv -o ${prefix}.reformatted.tsv.gz" : ''
     target_argument = write_target    ? "--tblout ${prefix}.tblout.gz" : ''
     domain_argument = write_domain    ? "--domtblout ${prefix}.domtblout.gz" : ''
 
 
     """
+    ${input} | \\
     pyhmmsearch \\
         $args \\
         --n_jobs $task.cpus \\
-        "-i" \\
-        $fasta \\
         "-d" \\ 
         $hmmdb \\
         -o ${prefix}.tsv \\
