@@ -7,7 +7,7 @@ process PYHMMSEARCH {
     tag "$meta.id"
     label 'process_medium'
 
-    conda "${moduleDir}/environment.yml"
+    conda "bioconda::pyhmmsearch=2024.10.20"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/pyhmmsearch:2024.10.20--pyh7e72e81_0' :
         'biocontainers/pyhmmsearch:2024.10.20--pyh7e72e81_0' }"
@@ -26,32 +26,53 @@ process PYHMMSEARCH {
     task.ext.when == null || task.ext.when
 
     script:
-    def args       = task.ext.args   ?: ''
-    def prefix     = task.ext.prefix ?: "${meta.id}"
-    input = "cat ${fasta}"
-    reformatted_argument = write_reformatted_output    ? "reformat_pyhmmsearch -i ${prefix}.tsv -o ${prefix}.reformatted.tsv.gz" : ''
-    target_argument = write_target    ? "--tblout ${prefix}.tblout.gz" : ''
-    domain_argument = write_domain    ? "--domtblout ${prefix}.domtblout.gz" : ''
-
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    
+    // Handle different input scenarios for FASTA files
+    def input_cmd = ""
+    if (fasta instanceof List) {
+        // Multiple files - determine if they're compressed and create appropriate input command
+        def compressed_files = fasta.findAll { it.name.endsWith('.gz') }
+        def uncompressed_files = fasta.findAll { !it.name.endsWith('.gz') }
+        
+        if (compressed_files.size() > 0 && uncompressed_files.size() > 0) {
+            // Mixed compressed and uncompressed files
+            input_cmd = "(zcat ${compressed_files.join(' ')} && cat ${uncompressed_files.join(' ')})"
+        } else if (compressed_files.size() > 0) {
+            // All compressed files
+            input_cmd = "zcat ${compressed_files.join(' ')}"
+        } else {
+            // All uncompressed files
+            input_cmd = "cat ${uncompressed_files.join(' ')}"
+        }
+    } else {
+        // Single file
+        if (fasta.name.endsWith('.gz')) {
+            input_cmd = "zcat ${fasta}"
+        } else {
+            input_cmd = "cat ${fasta}"
+        }
+    }
+    
+    def reformatted_argument = write_reformatted_output ? "reformat_pyhmmsearch -i ${prefix}.tsv -o ${prefix}.reformatted.tsv.gz" : ''
 
     """
-    ${input} | \\
-    pyhmmsearch \\
-        $args \\
-        --n_jobs $task.cpus \\
-        "-d" \\ 
-        $hmmdb \\
-        -o ${prefix}.tsv \\
-        // $target_summary \\
-        // $domain_summary \\
+    ${input_cmd} | \\
+        pyhmmsearch \\
+            $args \\
+            --n_jobs $task.cpus \\
+            -d $hmmdb \\
+            -i stdin \\
+            -o ${prefix}.tsv
 
     ${reformatted_argument}
 
-    gzip -n -f -v ${prefix}.tsv
+    gzip -n -f ${prefix}.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        pyhmmsearch: \$(pyhmmsearch --version')
+        pyhmmsearch: \$(pyhmmsearch --version | sed 's/.*version //; s/ .*//')
         module: ${module_version}
     END_VERSIONS
     """
@@ -60,13 +81,11 @@ process PYHMMSEARCH {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     touch "${prefix}.tsv.gz"
-    ${write_reformatted_output ? "touch ${prefix}.reformatted.tsv.gz" : ''} \\
-    // ${write_target ? "touch ${prefix}.tblout.gz" : ''} \\
-    // ${write_domain ? "touch ${prefix}.domtblout.gz" : ''}
+    ${write_reformatted_output ? "touch ${prefix}.reformatted.tsv.gz" : ''}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        pyhmmsearch: \$(pyhmmsearch --version')
+        pyhmmsearch: \$(pyhmmsearch --version | sed 's/.*version //; s/ .*//')
         module: ${module_version}
     END_VERSIONS
     """
