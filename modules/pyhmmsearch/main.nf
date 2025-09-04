@@ -13,13 +13,16 @@ process PYHMMSEARCH {
         'biocontainers/pyhmmsearch:2024.10.20--pyh7e72e81_0' }"
 
     input:
-    tuple val(meta), path(hmmdb), path(fasta), val(write_reformatted_output) //, val(write_target), val(write_domain)
+    tuple(val(meta), path(fasta))
+    tuple(val(dbmeta), path(db))
+    
+    val(write_reformatted_output) //, val(write_target), val(write_domain)
 
     output:
-    tuple val(meta), path('*.tsv.gz')   , emit: output
-    tuple val(meta), path('*.reformatted.tsv.gz')   , emit: reformatted_output    , optional: true
-    // tuple val(meta), path('*.tblout.gz'), emit: tblout, optional: true
-    // tuple val(meta), path('*.domtblout.gz'), emit: domtblout, optional: true
+    tuple val(meta), val(dbmeta), path('*.tsv.gz')   , emit: output
+    tuple val(meta), val(dbmeta), path('*.reformatted.tsv.gz')   , emit: reformatted_output    , optional: true
+    // tuple val(meta), val(dbmeta), path('*.tblout.gz'), emit: tblout, optional: true
+    // tuple val(meta), val(dbmeta), path('*.domtblout.gz'), emit: domtblout, optional: true
     path "versions.yml"                 , emit: versions
 
     when:
@@ -27,7 +30,7 @@ process PYHMMSEARCH {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}---${dbmeta.id}"
     
     // Handle different input scenarios for FASTA files
     def input_cmd = ""
@@ -62,7 +65,7 @@ process PYHMMSEARCH {
         pyhmmsearch \\
             $args \\
             --n_jobs $task.cpus \\
-            -d $hmmdb \\
+            -d $db \\
             -i stdin \\
             -o ${prefix}.tsv
 

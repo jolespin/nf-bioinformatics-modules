@@ -4,7 +4,7 @@ nextflow.enable.dsl = 2
 def module_version = "2025.9.4"
 
 process DIAMOND_BLASTP {
-    tag "${meta.id}_vs_${meta2.id}"
+    tag "${meta.id}_vs_${dbmeta.id}"
     label 'process_high'
 
     conda "bioconda::diamond=2.1.12"
@@ -14,12 +14,12 @@ process DIAMOND_BLASTP {
 
     input:
     tuple val(meta), path(fastas)
-    tuple val(meta2), path(db)
+    tuple val(dbmeta), path(db)
     val outfmt
     val blast_columns
     
     output:
-    tuple val(meta), val(meta2), path("*.{txt.gz,tsv.gz}"), emit: results
+    tuple val(meta), val(dbmeta), path("*.{txt.gz,tsv.gz}"), emit: results
     path "versions.yml", emit: versions
     
     when:
@@ -27,7 +27,7 @@ process DIAMOND_BLASTP {
     
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}_vs_${meta2.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}---${dbmeta.id}"
     def columns = blast_columns ? "${blast_columns}" : ''
     def extension = outfmt == 6 ? "tsv" : "txt"
     
@@ -106,7 +106,7 @@ process DIAMOND_BLASTP {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}_vs_${meta2.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}_vs_${dbmeta.id}"
     def extension = outfmt == 6 ? "tsv" : "txt"
     
     """
@@ -121,7 +121,7 @@ process DIAMOND_BLASTP {
 }
 
 // process DIAMOND_BLASTP_WITH_CONCATENATION {
-//     tag "${meta.id}_vs_${meta2.id}"
+//     tag "${meta.id}_vs_${dbmeta.id}"
 //     label 'process_high'
 
 //     conda "bioconda::diamond=2.1.12"
@@ -131,17 +131,17 @@ process DIAMOND_BLASTP {
 
 //     input:
 //     tuple val(meta), path(fastas)
-//     tuple val(meta2), path(db)
+//     tuple val(dbmeta), path(db)
 //     val outfmt
 //     val blast_columns
     
 //     output:
-//     tuple val(meta), val(meta2), path("*.{txt.gz,tsv.gz}"), emit: results
+//     tuple val(meta), val(dbmeta), path("*.{txt.gz,tsv.gz}"), emit: results
 //     path "versions.yml", emit: versions
     
 //     script:
 //     def args = task.ext.args ?: ''
-//     def prefix = task.ext.prefix ?: "${meta.id}_vs_${meta2.id}"
+//     def prefix = task.ext.prefix ?: "${meta.id}_vs_${dbmeta.id}"
 //     def columns = blast_columns ? "${blast_columns}" : ''
 //     def extension = outfmt == 6 ? "tsv" : "txt"
     
@@ -184,7 +184,7 @@ process DIAMOND_BLASTP {
 //     """
 
 //     stub:
-//     def prefix = task.ext.prefix ?: "${meta.id}_vs_${meta2.id}"
+//     def prefix = task.ext.prefix ?: "${meta.id}_vs_${dbmeta.id}"
 //     def extension = outfmt == 6 ? "tsv" : "txt"
     
 //     """
