@@ -4,140 +4,6 @@ nextflow.enable.dsl = 2
 def module_version = "2025.9.4"
 
 process DIAMOND_BLASTP {
-    tag "${meta.id}"
-    label 'process_high'
-
-    conda "bioconda::diamond=2.1.12"
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://depot.galaxyproject.org/singularity/diamond:2.1.12--hdb4b4cc_1'
-        : 'biocontainers/diamond:2.1.12--hdb4b4cc_1'}"
-
-    input:
-    tuple val(meta), path(fasta)
-    tuple val(meta2), path(db)
-    val outfmt
-    val blast_columns
-
-    output:
-    tuple val(meta), path('*.{blast,blast.gz}'), optional: true, emit: blast
-    tuple val(meta), path('*.{xml,xml.gz}'), optional: true, emit: xml
-    tuple val(meta), path('*.{txt,txt.gz}'), optional: true, emit: txt
-    tuple val(meta), path('*.{daa,daa.gz}'), optional: true, emit: daa
-    tuple val(meta), path('*.{sam,sam.gz}'), optional: true, emit: sam
-    tuple val(meta), path('*.{tsv,tsv.gz}'), optional: true, emit: tsv
-    tuple val(meta), path('*.{paf,paf.gz}'), optional: true, emit: paf
-    path "versions.yml", emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
-
-    script:
-    def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
-
-    def columns = blast_columns ? "${blast_columns}" : ''
-    def out_ext = ""
-
-    if (outfmt == 0) {
-        out_ext = "blast"
-    }
-    else if (outfmt == 5) {
-        out_ext = "xml"
-    }
-    else if (outfmt == 6) {
-        out_ext = "tsv"
-    }
-    else if (outfmt == 100) {
-        out_ext = "daa"
-    }
-    else if (outfmt == 101) {
-        out_ext = "sam"
-    }
-    else if (outfmt == 102) {
-        out_ext = "tsv"
-    }
-    else if (outfmt == 103) {
-        out_ext = "paf"
-    }
-    else {
-        log.warn("Unknown output file format provided (${outfmt}): selecting DIAMOND default of tabular BLAST output (tsv)")
-        outfmt = 6
-        out_ext = 'tsv'
-    }
-
-    if (args =~ /--compress\s+1/) {
-        out_ext += '.gz'
-    }
-
-    """
-    diamond \\
-        blastp \\
-        --threads ${task.cpus} \\
-        --db ${db} \\
-        --query ${fasta} \\
-        --outfmt ${outfmt} ${columns} \\
-        --max-target-seqs 1 \\
-        ${args} \\
-        --out ${prefix}.${out_ext} \\
-        --header simple
-
-    gzip -n -f -v ${prefix}.${out_ext}
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        diamond: \$(diamond --version 2>&1 | tail -n 1 | sed 's/^diamond version //')
-        module: ${module_version}
-    END_VERSIONS
-    """
-
-    stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
-
-    def out_ext = ""
-
-    if (outfmt == 0) {
-        out_ext = "blast"
-    }
-    else if (outfmt == 5) {
-        out_ext = "xml"
-    }
-    else if (outfmt == 6) {
-        out_ext = "tsv"
-    }
-    else if (outfmt == 100) {
-        out_ext = "daa"
-    }
-    else if (outfmt == 101) {
-        out_ext = "sam"
-    }
-    else if (outfmt == 102) {
-        out_ext = "tsv"
-    }
-    else if (outfmt == 103) {
-        out_ext = "paf"
-    }
-    else {
-        log.warn("Unknown output file format provided (${outfmt}): selecting DIAMOND default of tabular BLAST output (tsv)")
-        outfmt = 6
-        out_ext = 'tsv'
-    }
-
-    if (args =~ /--compress\s+1/) {
-        out_ext += '.gz'
-    }
-
-    """
-    touch ${prefix}.${out_ext}
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        diamond: \$(diamond --version 2>&1 | tail -n 1 | sed 's/^diamond version //')
-        module: ${module_version}
-    END_VERSIONS
-    """
-}
-
-process DIAMOND_BLASTP_WITH_CONCATENATION {
     tag "${meta.id}_vs_${meta2.id}"
     label 'process_high'
 
@@ -156,42 +22,81 @@ process DIAMOND_BLASTP_WITH_CONCATENATION {
     tuple val(meta), val(meta2), path("*.{txt.gz,tsv.gz}"), emit: results
     path "versions.yml", emit: versions
     
+    when:
+    task.ext.when == null || task.ext.when
+    
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}_vs_${meta2.id}"
     def columns = blast_columns ? "${blast_columns}" : ''
     def extension = outfmt == 6 ? "tsv" : "txt"
     
+    // Handle different input scenarios for FASTA files
+    def concatenation_cmd = ""
+    if (fastas instanceof List) {
+        // Multiple files - determine if they're compressed and create appropriate concatenation command
+        def compressed_files = fastas.findAll { it.name.endsWith('.gz') }
+        def uncompressed_files = fastas.findAll { !it.name.endsWith('.gz') }
+        
+        if (compressed_files.size() > 0 && uncompressed_files.size() > 0) {
+            // Mixed compressed and uncompressed files
+            concatenation_cmd = """
+            # Handle mixed compressed and uncompressed files
+            for fasta in ${compressed_files.join(' ')}; do
+                zcat \$fasta >> concatenated_input.fa
+            done
+            for fasta in ${uncompressed_files.join(' ')}; do
+                cat \$fasta >> concatenated_input.fa
+            done
+            """
+        } else if (compressed_files.size() > 0) {
+            // All compressed files
+            concatenation_cmd = """
+            # Handle all compressed files
+            zcat ${compressed_files.join(' ')} > concatenated_input.fa
+            """
+        } else {
+            // All uncompressed files
+            concatenation_cmd = """
+            # Handle all uncompressed files
+            cat ${uncompressed_files.join(' ')} > concatenated_input.fa
+            """
+        }
+    } else {
+        // Single file
+        if (fastas.name.endsWith('.gz')) {
+            concatenation_cmd = """
+            # Handle single compressed file
+            zcat ${fastas} > concatenated_input.fa
+            """
+        } else {
+            concatenation_cmd = """
+            # Handle single uncompressed file
+            cat ${fastas} > concatenated_input.fa
+            """
+        }
+    }
+
     """
-    # Create temporary concatenated file (BusyBox compatible)
-    TEMP_FASTA=\$(mktemp)
-    
-    # Concatenate all FASTA files (handle both gzipped and uncompressed)
-    for fasta in ${fastas.join(' ')}; do
-        if [[ \$fasta == *.gz ]]; then
-            zcat \$fasta >> \$TEMP_FASTA
-        else
-            cat \$fasta >> \$TEMP_FASTA
-        fi
-    done
-    
+    ${concatenation_cmd}
+
     # Run DIAMOND BLASTP
     diamond \\
         blastp \\
         --threads ${task.cpus} \\
         --db ${db} \\
-        --query \$TEMP_FASTA \\
+        --query concatenated_input.fa \\
         --outfmt ${outfmt} ${columns} \\
         --max-target-seqs 1 \\
         ${args} \\
         --out ${prefix}.${extension} \\
         --header simple
 
-    # Gzip
-    gzip -n -f -v ${prefix}.${extension}
+    # Gzip the output
+    gzip -n -f ${prefix}.${extension}
 
     # Clean up temporary file
-    rm \$TEMP_FASTA
+    rm -f concatenated_input.fa
     
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -214,3 +119,81 @@ process DIAMOND_BLASTP_WITH_CONCATENATION {
     END_VERSIONS
     """
 }
+
+// process DIAMOND_BLASTP_WITH_CONCATENATION {
+//     tag "${meta.id}_vs_${meta2.id}"
+//     label 'process_high'
+
+//     conda "bioconda::diamond=2.1.12"
+//     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
+//         ? 'https://depot.galaxyproject.org/singularity/diamond:2.1.12--hdb4b4cc_1'
+//         : 'biocontainers/diamond:2.1.12--hdb4b4cc_1'}"
+
+//     input:
+//     tuple val(meta), path(fastas)
+//     tuple val(meta2), path(db)
+//     val outfmt
+//     val blast_columns
+    
+//     output:
+//     tuple val(meta), val(meta2), path("*.{txt.gz,tsv.gz}"), emit: results
+//     path "versions.yml", emit: versions
+    
+//     script:
+//     def args = task.ext.args ?: ''
+//     def prefix = task.ext.prefix ?: "${meta.id}_vs_${meta2.id}"
+//     def columns = blast_columns ? "${blast_columns}" : ''
+//     def extension = outfmt == 6 ? "tsv" : "txt"
+    
+//     """
+//     # Create temporary concatenated file (BusyBox compatible)
+//     TEMP_FASTA=\$(mktemp)
+    
+//     # Concatenate all FASTA files (handle both gzipped and uncompressed)
+//     for fasta in ${fastas.join(' ')}; do
+//         if [[ \$fasta == *.gz ]]; then
+//             zcat \$fasta >> \$TEMP_FASTA
+//         else
+//             cat \$fasta >> \$TEMP_FASTA
+//         fi
+//     done
+    
+//     # Run DIAMOND BLASTP
+//     diamond \\
+//         blastp \\
+//         --threads ${task.cpus} \\
+//         --db ${db} \\
+//         --query \$TEMP_FASTA \\
+//         --outfmt ${outfmt} ${columns} \\
+//         --max-target-seqs 1 \\
+//         ${args} \\
+//         --out ${prefix}.${extension} \\
+//         --header simple
+
+//     # Gzip
+//     gzip -n -f -v ${prefix}.${extension}
+
+//     # Clean up temporary file
+//     rm \$TEMP_FASTA
+    
+//     cat <<-END_VERSIONS > versions.yml
+//     "${task.process}":
+//         diamond: \$(diamond --version 2>&1 | tail -n 1 | sed 's/^diamond version //')
+//         module: ${module_version}
+//     END_VERSIONS
+//     """
+
+//     stub:
+//     def prefix = task.ext.prefix ?: "${meta.id}_vs_${meta2.id}"
+//     def extension = outfmt == 6 ? "tsv" : "txt"
+    
+//     """
+//     touch ${prefix}.${extension}.gz
+    
+//     cat <<-END_VERSIONS > versions.yml
+//     "${task.process}":
+//         diamond: \$(diamond --version 2>&1 | tail -n 1 | sed 's/^diamond version //')
+//         module: ${module_version}
+//     END_VERSIONS
+//     """
+// }
