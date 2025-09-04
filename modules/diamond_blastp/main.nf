@@ -160,11 +160,17 @@ process DIAMOND_BLASTP_WITH_CONCATENATION {
     def extension = outfmt == 6 ? "txt" : "tsv"
     
     """
-    # Create temporary concatenated file
-    TEMP_FASTA=\$(mktemp --suffix=.fasta)
+    # Create temporary concatenated file (BusyBox compatible)
+    TEMP_FASTA=\$(mktemp)
     
-    # Concatenate all FASTA files
-    cat ${fastas.join(' ')} > \$TEMP_FASTA
+    # Concatenate all FASTA files (handle both gzipped and uncompressed)
+    for fasta in ${fastas.join(' ')}; do
+        if [[ \$fasta == *.gz ]]; then
+            zcat \$fasta >> \$TEMP_FASTA
+        else
+            cat \$fasta >> \$TEMP_FASTA
+        fi
+    done
     
     # Run DIAMOND BLASTP
     diamond \\
