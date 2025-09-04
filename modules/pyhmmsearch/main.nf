@@ -7,10 +7,10 @@ process PYHMMSEARCH {
     tag "$meta.id---$dbmeta.id"
     label 'process_medium'
 
-    conda "bioconda::pyhmmsearch=2024.10.20"
+    conda "bioconda::pyhmmsearch=2025.1.23"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/pyhmmsearch:2024.10.20--pyh7e72e81_0' :
-        'biocontainers/pyhmmsearch:2024.10.20--pyh7e72e81_0' }"
+        'https://depot.galaxyproject.org/singularity/pyhmmsearch:2025.1.23--pyh7e72e81_0' :
+        'biocontainers/pyhmmsearch:2025.1.23--pyh7e72e81_0' }"
 
     input:
     tuple(val(meta), path(fasta))
@@ -20,8 +20,8 @@ process PYHMMSEARCH {
     output:
     tuple val(meta), val(dbmeta), path('*.tsv.gz')   , emit: output
     tuple val(meta), val(dbmeta), path('*.reformatted.tsv.gz')   , emit: reformatted_output    , optional: true
-    // tuple val(meta), val(dbmeta), path('*.tblout.gz'), emit: tblout, optional: true
-    // tuple val(meta), val(dbmeta), path('*.domtblout.gz'), emit: domtblout, optional: true
+    tuple val(meta), val(dbmeta), path('*.tblout.gz'), emit: tblout, optional: true
+    tuple val(meta), val(dbmeta), path('*.domtblout.gz'), emit: domtblout, optional: true
     path "versions.yml"                 , emit: versions
 
     when:
@@ -56,8 +56,9 @@ process PYHMMSEARCH {
             input_cmd = "cat ${fasta}"
         }
     }
-    
-    def reformatted_argument = write_reformatted_output ? "reformat_pyhmmsearch -i ${prefix}.tsv -o ${prefix}.reformatted.tsv.gz" : ''
+    def tblout_argument = write_target ? "--tblout ${prefix}.tblout.gz" : ""
+    def domtblout_argument = write_target ? "--domtblout ${prefix}.domtblout.gz" : ""
+    def reformat_command = write_reformatted_output ? "reformat_pyhmmsearch -i ${prefix}.tsv -o ${prefix}.reformatted.tsv.gz" : ''
 
     """
     ${input_cmd} | \\
@@ -66,9 +67,11 @@ process PYHMMSEARCH {
             --n_jobs $task.cpus \\
             -d $db \\
             -i stdin \\
+            ${tblout_argument} \\
+            ${domtblout_argument} \\
             -o ${prefix}.tsv
 
-    ${reformatted_argument}
+    ${reformat_command}
 
     gzip -n -f ${prefix}.tsv
 
