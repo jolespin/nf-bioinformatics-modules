@@ -7,23 +7,21 @@ process PYHMMSEARCH {
     tag "$meta.id---$dbmeta.id"
     label 'process_medium'
 
-    conda "bioconda::pyhmmsearch=2025.9.4.post1"
+    conda "bioconda::pykofamsearch=2024.11.9"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/pyhmmsearch:2025.9.4.post1--pyh7e72e81_0' :
-        'biocontainers/pyhmmsearch:2025.9.4.post1--pyh7e72e81_0' }"
+        'https://depot.galaxyproject.org/singularity/pykofamsearch:2024.11.9--pyhdfd78af_0' :
+        'biocontainers/pykofamsearch:2024.11.9--pyhdfd78af_0' }"
 
     input:
     tuple(val(meta), path(fasta))
     tuple(val(dbmeta), path(db))
     val(write_reformatted_output)
-    val(write_target)
-    val(write_domain)
+    val(is_serialized_database)
+
 
     output:
     tuple val(meta), val(dbmeta), path('*.tsv.gz')   , emit: output
     tuple val(meta), val(dbmeta), path('*.reformatted.tsv.gz')   , emit: reformatted_output    , optional: true
-    tuple val(meta), val(dbmeta), path('*.tblout.gz'), emit: tblout, optional: true
-    tuple val(meta), val(dbmeta), path('*.domtblout.gz'), emit: domtblout, optional: true
     path "versions.yml"                 , emit: versions
 
     when:
@@ -79,23 +77,19 @@ process PYHMMSEARCH {
         }
     }
 
-
-    def tblout_argument = write_target ? "--tblout ${prefix}.tblout.gz" : ""
-    def domtblout_argument = write_target ? "--domtblout ${prefix}.domtblout.gz" : ""
-    def reformat_command = write_reformatted_output ? "reformat_pyhmmsearch -i ${prefix}.tsv -o ${prefix}.reformatted.tsv.gz" : ''
+    def database_argument = is_serialized_database ? "-b ${db}" : "-d ${db}"
+    def reformat_command = write_reformatted_output ? "reformat_pykofamsearch -i ${prefix}.tsv -o ${prefix}.reformatted.tsv.gz" : ''
 
     """
     # Create temporary file
     ${concatenation_cmd}
 
-    # Run PyHMMSearch
-    pyhmmsearch \\
+    # Run PyKOfamSearch
+    pykofamsearch \\
         $args \\
         --n_jobs $task.cpus \\
-        -d $db \\
+        ${database_argument} \\
         -i concatenated_input.fasta \\
-        ${tblout_argument} \\
-        ${domtblout_argument} \\
         -o ${prefix}.tsv
 
     # Remove temporary file
