@@ -109,7 +109,7 @@ process PYHMMSEARCH {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        pyhmmsearch: \$(pyhmmsearch --version')
+        pyhmmsearch: \$(pyhmmsearch --version)
         module: ${module_version}
     END_VERSIONS
     """
@@ -122,7 +122,7 @@ process PYHMMSEARCH {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        pyhmmsearch: \$(pyhmmsearch --version')
+        pyhmmsearch: \$(pyhmmsearch --version)
         module: ${module_version}
     END_VERSIONS
     """

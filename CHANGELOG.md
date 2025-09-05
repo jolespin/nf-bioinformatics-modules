@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `program` to `spades` module
 - Added `checkm2_predict` module
 - Added `pyhmmsearch` module
+- Added `pykofamsearch` module
 
 ## [0.1.0] - 2025-09-01
 
