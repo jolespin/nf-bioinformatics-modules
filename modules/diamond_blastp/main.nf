@@ -13,7 +13,7 @@ process DIAMOND_BLASTP {
         : 'biocontainers/diamond:2.1.12--hdb4b4cc_1'}"
 
     input:
-    tuple val(meta), path(fastas)
+    tuple val(meta), path(fasta)
     tuple val(dbmeta), path(db)
     val outfmt
     val blast_columns
@@ -33,46 +33,46 @@ process DIAMOND_BLASTP {
     
     // Handle different input scenarios for FASTA files
     def concatenation_cmd = ""
-    if (fastas instanceof List) {
+    if (fasta instanceof List) {
         // Multiple files - determine if they're compressed and create appropriate concatenation command
-        def compressed_files = fastas.findAll { it.name.endsWith('.gz') }
-        def uncompressed_files = fastas.findAll { !it.name.endsWith('.gz') }
+        def compressed_files = fasta.findAll { it.name.endsWith('.gz') }
+        def uncompressed_files = fasta.findAll { !it.name.endsWith('.gz') }
         
         if (compressed_files.size() > 0 && uncompressed_files.size() > 0) {
             // Mixed compressed and uncompressed files
             concatenation_cmd = """
             # Handle mixed compressed and uncompressed files
             for fasta in ${compressed_files.join(' ')}; do
-                zcat \$fasta >> concatenated_input.fa
+                zcat \$fasta >> concatenated_input.fasta
             done
             for fasta in ${uncompressed_files.join(' ')}; do
-                cat \$fasta >> concatenated_input.fa
+                cat \$fasta >> concatenated_input.fasta
             done
             """
         } else if (compressed_files.size() > 0) {
             // All compressed files
             concatenation_cmd = """
             # Handle all compressed files
-            zcat ${compressed_files.join(' ')} > concatenated_input.fa
+            zcat ${compressed_files.join(' ')} > concatenated_input.fasta
             """
         } else {
             // All uncompressed files
             concatenation_cmd = """
             # Handle all uncompressed files
-            cat ${uncompressed_files.join(' ')} > concatenated_input.fa
+            cat ${uncompressed_files.join(' ')} > concatenated_input.fasta
             """
         }
     } else {
         // Single file
-        if (fastas.name.endsWith('.gz')) {
+        if (fasta.name.endsWith('.gz')) {
             concatenation_cmd = """
             # Handle single compressed file
-            zcat ${fastas} > concatenated_input.fa
+            zcat ${fasta} > concatenated_input.fasta
             """
         } else {
             concatenation_cmd = """
             # Handle single uncompressed file
-            cat ${fastas} > concatenated_input.fa
+            cat ${fasta} > concatenated_input.fasta
             """
         }
     }
@@ -85,7 +85,7 @@ process DIAMOND_BLASTP {
         blastp \\
         --threads ${task.cpus} \\
         --db ${db} \\
-        --query concatenated_input.fa \\
+        --query concatenated_input.fasta \\
         --outfmt ${outfmt} ${columns} \\
         --max-target-seqs 1 \\
         ${args} \\
@@ -96,7 +96,7 @@ process DIAMOND_BLASTP {
     gzip -n -f ${prefix}.${extension}
 
     # Clean up temporary file
-    rm -f concatenated_input.fa
+    rm -f concatenated_input.fasta
     
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -130,7 +130,7 @@ process DIAMOND_BLASTP {
 //         : 'biocontainers/diamond:2.1.12--hdb4b4cc_1'}"
 
 //     input:
-//     tuple val(meta), path(fastas)
+//     tuple val(meta), path(fasta)
 //     tuple val(dbmeta), path(db)
 //     val outfmt
 //     val blast_columns
@@ -150,7 +150,7 @@ process DIAMOND_BLASTP {
 //     TEMP_FASTA=\$(mktemp)
     
 //     # Concatenate all FASTA files (handle both gzipped and uncompressed)
-//     for fasta in ${fastas.join(' ')}; do
+//     for fasta in ${fasta.join(' ')}; do
 //         if [[ \$fasta == *.gz ]]; then
 //             zcat \$fasta >> \$TEMP_FASTA
 //         else

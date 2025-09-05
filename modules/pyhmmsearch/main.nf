@@ -34,52 +34,82 @@ process PYHMMSEARCH {
     def prefix = task.ext.prefix ?: "${meta.id}---${dbmeta.id}"
     
     // Handle different input scenarios for FASTA files
-    def input_cmd = ""
+    def concatenation_cmd = ""
     if (fasta instanceof List) {
-        // Multiple files - determine if they're compressed and create appropriate input command
+        // Multiple files - determine if they're compressed and create appropriate concatenation command
         def compressed_files = fasta.findAll { it.name.endsWith('.gz') }
         def uncompressed_files = fasta.findAll { !it.name.endsWith('.gz') }
         
         if (compressed_files.size() > 0 && uncompressed_files.size() > 0) {
             // Mixed compressed and uncompressed files
-            input_cmd = "(zcat ${compressed_files.join(' ')} && cat ${uncompressed_files.join(' ')})"
+            concatenation_cmd = """
+            # Handle mixed compressed and uncompressed files
+            for fasta in ${compressed_files.join(' ')}; do
+                zcat \$fasta >> concatenated_input.fasta
+            done
+            for fasta in ${uncompressed_files.join(' ')}; do
+                cat \$fasta >> concatenated_input.fasta
+            done
+            """
         } else if (compressed_files.size() > 0) {
             // All compressed files
-            input_cmd = "zcat ${compressed_files.join(' ')}"
+            concatenation_cmd = """
+            # Handle all compressed files
+            zcat ${compressed_files.join(' ')} > concatenated_input.fasta
+            """
         } else {
             // All uncompressed files
-            input_cmd = "cat ${uncompressed_files.join(' ')}"
+            concatenation_cmd = """
+            # Handle all uncompressed files
+            cat ${uncompressed_files.join(' ')} > concatenated_input.fasta
+            """
         }
     } else {
         // Single file
         if (fasta.name.endsWith('.gz')) {
-            input_cmd = "zcat ${fasta}"
+            concatenation_cmd = """
+            # Handle single compressed file
+            zcat ${fasta} > concatenated_input.fasta
+            """
         } else {
-            input_cmd = "cat ${fasta}"
+            concatenation_cmd = """
+            # Handle single uncompressed file
+            cat ${fasta} > concatenated_input.fasta
+            """
         }
     }
+
+
     def tblout_argument = write_target ? "--tblout ${prefix}.tblout.gz" : ""
     def domtblout_argument = write_target ? "--domtblout ${prefix}.domtblout.gz" : ""
     def reformat_command = write_reformatted_output ? "reformat_pyhmmsearch -i ${prefix}.tsv -o ${prefix}.reformatted.tsv.gz" : ''
 
     """
-    ${input_cmd} | \\
-        pyhmmsearch \\
-            $args \\
-            --n_jobs $task.cpus \\
-            -d $db \\
-            -i stdin \\
-            ${tblout_argument} \\
-            ${domtblout_argument} \\
-            -o ${prefix}.tsv
+    # Create temporary file
+    ${concatenation_cmd}
 
+    # Run PyHMMSearc
+    pyhmmsearch \\
+        $args \\
+        --n_jobs $task.cpus \\
+        -d $db \\
+        -i concatenated_input.fasta \\
+        ${tblout_argument} \\
+        ${domtblout_argument} \\
+        -o ${prefix}.tsv
+
+    # Remove temporary file
+    rm -v concatenated_input.fasta
+
+    # Run reformat script
     ${reformat_command}
 
+    # Gzip main output
     gzip -n -f ${prefix}.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        pyhmmsearch: \$(pyhmmsearch --version | sed 's/.*version //; s/ .*//')
+        pyhmmsearch: \$(pyhmmsearch --version')
         module: ${module_version}
     END_VERSIONS
     """
@@ -92,7 +122,7 @@ process PYHMMSEARCH {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        pyhmmsearch: \$(pyhmmsearch --version | sed 's/.*version //; s/ .*//')
+        pyhmmsearch: \$(pyhmmsearch --version')
         module: ${module_version}
     END_VERSIONS
     """
