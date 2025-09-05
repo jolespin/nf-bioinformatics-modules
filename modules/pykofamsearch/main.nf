@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 def module_version = "2025.9.4"
 
-process PYHMMSEARCH {
+process PYKOFAMSEARCH {
     tag "$meta.id---$dbmeta.id"
     label 'process_medium'
 
