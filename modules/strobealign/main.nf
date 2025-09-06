@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
-def module_version = "1.0.0"
+def module_version = "2025.9.5"
 
 process STROBEALIGN {
     tag "$meta.id"
@@ -31,18 +31,33 @@ process STROBEALIGN {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def reads_input = reads instanceof List ? reads.join(' ') : reads
     
+    // Handle gzipped reference files
+    def reference_prep = ""
+    def reference_file = reference
+    def cleanup_cmd = ""
+    
+    if (reference.toString().endsWith('.gz')) {
+        reference_file = "temp_reference.fa"
+        reference_prep = "gunzip -c ${reference} > ${reference_file}"
+        cleanup_cmd = "rm -f ${reference_file}"
+    }
+    
     if (mode == "bam") {
         """
+        ${reference_prep}
+        
         strobealign \\
             -t ${task.cpus} \\
             ${args} \\
-            ${reference} \\
+            ${reference_file} \\
             ${reads_input} \\
             | samtools sort -@ ${task.cpus} -o ${prefix}.sorted.bam -
 
         samtools index -@ ${task.cpus} ${prefix}.sorted.bam
 
         samtools depth -@ ${task.cpus} ${prefix}.sorted.bam | gzip -n -v -f > ${prefix}.depth.tsv.gz
+
+        ${cleanup_cmd}
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -53,13 +68,17 @@ process STROBEALIGN {
         """
     } else if (mode == "paf") {
         """
+        ${reference_prep}
+        
         strobealign \\
             -x \\
             -t ${task.cpus} \\
             ${args} \\
-            ${reference} \\
+            ${reference_file} \\
             ${reads_input} \\
             | gzip -n -v -f > ${prefix}.paf.gz
+
+        ${cleanup_cmd}
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -69,13 +88,17 @@ process STROBEALIGN {
         """
     } else if (mode == "tsv") {
         """
+        ${reference_prep}
+        
         strobealign \\
             --aemb \\
             -t ${task.cpus} \\
             ${args} \\
-            ${reference} \\
+            ${reference_file} \\
             ${reads_input} \\
             | gzip -n -v -f > ${prefix}.abundance.tsv.gz
+
+        ${cleanup_cmd}
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":

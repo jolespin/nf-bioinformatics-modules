@@ -7,10 +7,11 @@ process PYKOFAMSEARCH {
     tag "$meta.id---$dbmeta.id"
     label 'process_medium'
 
-    conda "bioconda::pykofamsearch=2024.11.9"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/pykofamsearch:2024.11.9--pyhdfd78af_0' :
-        'biocontainers/pykofamsearch:2024.11.9--pyhdfd78af_0' }"
+    conda "bioconda::pykofamsearch=2025.9.5"
+    container "docker.io/jolespin/pykofamsearch:2025.9.5"
+    // container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    //     'https://depot.galaxyproject.org/singularity/pykofamsearch:2024.11.9--pyhdfd78af_0' :
+    //     'biocontainers/pykofamsearch:2024.11.9--pyhdfd78af_0' }"
 
     input:
     tuple(val(meta), path(fasta))
